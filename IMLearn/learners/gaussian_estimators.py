@@ -52,22 +52,27 @@ class UnivariateGaussian:
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
 
-        m = 1000
-        Y = np.random.normal(10,1,m)
+        size = 1000
+        e, mu = 10, 1
+        Y = np.random.normal(e, mu, size)
 
         estimated_e = np.mean(Y)
-        estimated_mu = np.sum(Y-estimated_e) / (m-1)
+        estimated_mu = np.sum(np.power(Y-estimated_e, 2)) / (size-1)
 
         print((estimated_e, estimated_mu))
 
-        estimated_mean = []
-        for sub_m in range(10,m,10):
-            Y = np.random.normal(10,1,sub_m)
-            estimated_e = np.mean(Y)
-            estimated_mean.append(np.abs(estimated_e - 10))
+        ms = np.linspace(10, size, 100).astype(int)
+        distances_from_e = []
+        for m in ms:
+            estimated_e = np.mean(Y[:m+1])
+            distances_from_e.append(np.abs(estimated_e - e))
 
-        fig = utils.make_subplots() \
-            .add_trace(x=m, y=Y, mode='lines', name=r'$\mu$')
+        fig = utils.make_subplots(rows=1,cols=2)\
+            .add_traces([utils.go.Scatter(x=ms, y=distances_from_e, mode='lines', name=r'$\widehat\mu$'),
+                         utils.go.Scatter(x=ms, y=np.zeros(size), mode="lines",name=r'$zero$')])\
+            .update_layout(title_text=r"$\text{Error of the sample mean}$", height=300)\
+            .update_yaxes(title_text=r"$\widehat\mu - \mu$")\
+            .update_xaxes(title_text="Number of samples")
         fig.show()
 
         self.fitted_ = True
@@ -208,3 +213,5 @@ class MultivariateGaussian:
         """
         raise NotImplementedError()
 
+ug = UnivariateGaussian(False)
+ug.fit(np.ndarray([]))
