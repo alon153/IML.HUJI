@@ -1,5 +1,6 @@
 from __future__ import annotations
 import numpy as np
+import utils
 from numpy.linalg import inv, det, slogdet
 
 
@@ -15,7 +16,6 @@ class UnivariateGaussian:
         ----------
         biased_var : bool, default=True
             Should fitted estimator of variance be a biased or unbiased estimator
-
         Attributes
         ----------
         fitted_ : bool
@@ -51,7 +51,24 @@ class UnivariateGaussian:
         Sets `self.mu_`, `self.var_` attributes according to calculated estimation (where
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
+
+        m = 1000
+        Y = np.random.normal(10,1,m)
+
+        estimated_e = np.mean(Y)
+        estimated_mu = np.sum(Y-estimated_e) / (m-1)
+
+        print((estimated_e, estimated_mu))
+
+        estimated_mean = []
+        for sub_m in range(10,m,10):
+            Y = np.random.normal(10,1,sub_m)
+            estimated_e = np.mean(Y)
+            estimated_mean.append(np.abs(estimated_e - 10))
+
+        fig = utils.make_subplots() \
+            .add_trace(x=m, y=Y, mode='lines', name=r'$\mu$')
+        fig.show()
 
         self.fitted_ = True
         return self
@@ -190,3 +207,4 @@ class MultivariateGaussian:
             log-likelihood calculated
         """
         raise NotImplementedError()
+
