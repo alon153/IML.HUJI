@@ -56,26 +56,28 @@ class UnivariateGaussian:
         e, mu = 10, 1
         Y = np.random.normal(e, mu, size)
 
-        estimated_e = np.mean(Y)
-        estimated_mu = np.sum(np.power(Y-estimated_e, 2)) / (size-1)
+        self.mu_ = np.mean(Y)
+        self.var_ = np.sum((Y-self.mu_)**2) / (size-1)
 
-        print((estimated_e, estimated_mu))
+        print((self.mu_, self.var_))
 
         ms = np.linspace(10, size, 100).astype(int)
         distances_from_e = []
         for m in ms:
-            estimated_e = np.mean(Y[:m+1])
-            distances_from_e.append(np.abs(estimated_e - e))
+            estimate = np.mean(Y[:m+1])
+            distances_from_e.append(np.abs(estimate - e))
 
+        self.fitted_ = True
         fig = utils.make_subplots(rows=1,cols=2)\
-            .add_traces([utils.go.Scatter(x=ms, y=distances_from_e, mode='lines', name=r'$\widehat\mu$'),
+            .add_traces([utils.go.Scatter(x=ms, y=self.pdf(distances_from_e), mode='lines', name=r'$\widehat\mu$'),
                          utils.go.Scatter(x=ms, y=np.zeros(size), mode="lines",name=r'$zero$')])\
             .update_layout(title_text=r"$\text{Error of the sample mean}$", height=300)\
             .update_yaxes(title_text=r"$\widehat\mu - \mu$")\
             .update_xaxes(title_text="Number of samples")
         fig.show()
 
-        self.fitted_ = True
+
+
         return self
 
     def pdf(self, X: np.ndarray) -> np.ndarray:
@@ -98,7 +100,8 @@ class UnivariateGaussian:
         """
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+
+        return np.exp((-1/(2*self.var_))*((X-self.mu_)**2)) * (1/np.sqrt(2*np.pi*self.var_))
 
     @staticmethod
     def log_likelihood(mu: float, sigma: float, X: np.ndarray) -> float:
