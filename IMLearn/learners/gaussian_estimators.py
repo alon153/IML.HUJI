@@ -51,34 +51,37 @@ class UnivariateGaussian:
         Sets `self.mu_`, `self.var_` attributes according to calculated estimation (where
         estimator is either biased or unbiased). Then sets `self.fitted_` attribute to `True`
         """
+        self.mu_ = np.mean(X)
 
-        size = 1000
-        e, mu = 10, 1
-        Y = np.random.normal(e, mu, size)
-
-        self.mu_ = np.mean(Y)
-        self.var_ = np.sum((Y-self.mu_)**2) / (size-1)
-
-        print((self.mu_, self.var_))
-
-        ms = np.linspace(10, size, 100).astype(int)
-        distances_from_e = []
-        for m in ms:
-            estimate = np.mean(Y[:m+1])
-            distances_from_e.append(np.abs(estimate - e))
+        size = X.size if self.biased_ else (X.size - 1)
+        sum_of_powers = np.sum(np.power(X-self.mu_, 2))
+        self.var_ = sum_of_powers / size
 
         self.fitted_ = True
-        fig = utils.make_subplots(rows=1,cols=2)\
-            .add_traces([utils.go.Scatter(x=ms, y=self.pdf(distances_from_e), mode='lines', name=r'$\widehat\mu$'),
-                         utils.go.Scatter(x=ms, y=np.zeros(size), mode="lines",name=r'$zero$')])\
-            .update_layout(title_text=r"$\text{Error of the sample mean}$", height=300)\
-            .update_yaxes(title_text=r"$\widehat\mu - \mu$")\
-            .update_xaxes(title_text="Number of samples")
-        fig.show()
-
-
-
         return self
+
+    @staticmethod
+    def generic_pdf(mu: float, sigma: float, x: float) -> float:
+        """
+        Calculates PDF of Gaussian model with given expectation and variance
+
+        Parameters
+        ----------
+        mu : float
+            Expectation of Gaussian
+        sigma : float
+            Variance of Gaussian
+        X : float
+            Sample to calculate PDF
+
+        Returns
+        -------
+        pdf: float
+            PDF calculated
+        """
+        mechane = np.sqrt(2 * np.pi * sigma)
+        mone = np.exp(-0.5 * (np.power(x - mu, 2) / sigma))
+        return mone / mechane
 
     def pdf(self, X: np.ndarray) -> np.ndarray:
         """
@@ -101,7 +104,8 @@ class UnivariateGaussian:
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
 
-        return np.exp((-1/(2*self.var_))*((X-self.mu_)**2)) * (1/np.sqrt(2*np.pi*self.var_))
+        lpdf = lambda x: UnivariateGaussian.generic_pdf(self.mu_, self.var_, x)
+        return np.ndarray(map(lpdf, X))
 
     @staticmethod
     def log_likelihood(mu: float, sigma: float, X: np.ndarray) -> float:
@@ -122,7 +126,11 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        raise NotImplementedError()
+        lpdf = lambda x: UnivariateGaussian.generic_pdf(mu, sigma, x)
+        pdfs = np.ndarray(map(lpdf, X))
+        likelihood = np.prod(pdfs)
+
+        return np.log(likelihood)
 
 
 class MultivariateGaussian:
@@ -168,10 +176,25 @@ class MultivariateGaussian:
         Sets `self.mu_`, `self.cov_` attributes according to calculated estimation.
         Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
+
+        self.mu_ = np.ndarray(map(np.mean, X))
+
+        m = X[0].size
+        centered = X.transpose() - self.mu_
+        self.cov_ = np.matmul(centered.transpose(), centered) * (1/m-1)
 
         self.fitted_ = True
         return self
+
+    @staticmethod
+    def generic_pdf(mu: np.ndarray, cov: np.ndarray, x: np.ndarray) -> float:
+        mechane = np.sqrt(np.power(2 * np.pi, x.size) * np.linalg.det(cov))
+
+        centered_x = x-mu
+        mat_multiplication = np.linalg.multi_dot(centered_x, np.invert(cov), centered_x.transpose())
+        mone = np.exp(-0.5 * mat_multiplication)
+
+        return mone / mechane
 
     def pdf(self, X: np.ndarray):
         """
@@ -193,7 +216,9 @@ class MultivariateGaussian:
         """
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+
+        lpdf = lambda x: MultivariateGaussian.generic_pdf(self.mu_, self.cov_, x)
+        return np.ndarray(map(lpdf, X))
 
     @staticmethod
     def log_likelihood(mu: np.ndarray, cov: np.ndarray, X: np.ndarray) -> float:
@@ -214,7 +239,7 @@ class MultivariateGaussian:
         log_likelihood: float
             log-likelihood calculated over all input data and under given parameters of Gaussian
         """
-        raise NotImplementedError()
-
-ug = UnivariateGaussian(False)
-ug.fit(np.ndarray([]))
+        lpdf = lambda x: MultivariateGaussian.generic_pdf(mu, cov, x)
+        pdfs = np.ndarray(map(lpdf, X))
+        likelihood = np.prod(pdfs)
+        return np.log(likelihood)
