@@ -105,7 +105,7 @@ class UnivariateGaussian:
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
 
         lpdf = lambda x: UnivariateGaussian.generic_pdf(self.mu_, self.var_, x)
-        return np.ndarray(map(lpdf, X))
+        return np.array(list(map(lpdf, X)))
 
     @staticmethod
     def log_likelihood(mu: float, sigma: float, X: np.ndarray) -> float:
@@ -177,11 +177,11 @@ class MultivariateGaussian:
         Then sets `self.fitted_` attribute to `True`
         """
 
-        self.mu_ = np.ndarray(map(np.mean, X))
+        self.mu_ = np.array(list(map(np.mean, X.transpose())))
 
-        m = X[0].size
-        centered = X.transpose() - self.mu_
-        self.cov_ = np.matmul(centered.transpose(), centered) * (1/m-1)
+        m = X.shape[0]
+        centered = X - self.mu_
+        self.cov_ = np.matmul(centered.transpose(), centered)/(m-1)
 
         self.fitted_ = True
         return self
