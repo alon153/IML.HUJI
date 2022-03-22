@@ -86,15 +86,7 @@ def test_multivariate_gaussian():
           max_log_likelihood)
 
 
-# if __name__ == '__main__':
-#     np.random.seed(0)
-#     test_univariate_gaussian()
-#     test_multivariate_gaussian()
-
-
 if __name__ == '__main__':
-    X = np.array([1, 5, 2, 3, 8, -4, -2, 5, 1, 10, -10, 4, 5, 2, 7, 1, 1, 3, 2, -1, -3, 1, -4, 1, 2, 1,
-          -4, -4, 1, 3, 2, 6, -6, 8, 3, -6, 4, 1, -2, 3, 1, 4, 1, 4, -2, 3, -1, 0, 3, 5, 0, -2])
-    uni_gauss = UnivariateGaussian().fit(X)
-    print(uni_gauss.log_likelihood(1,1,X))
-    print(uni_gauss.log_likelihood(10,1,X))
+    np.random.seed(0)
+    test_univariate_gaussian()
+    test_multivariate_gaussian()
