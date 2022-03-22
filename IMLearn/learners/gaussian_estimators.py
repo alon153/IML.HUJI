@@ -133,7 +133,7 @@ class UnivariateGaussian:
         """
         n = len(X)
         x_centered = X - mu
-        return -0.5 * n * np.log(2 * np.pi) - 0.5 * n * np.log(sigma) - np.inner(x_centered) / (2 * sigma)
+        return -0.5 * n * np.log(2 * np.pi) - 0.5 * n * np.log(sigma) - np.square(np.linalg.norm(x_centered)) / (2 * sigma)
 
 
 class MultivariateGaussian:
