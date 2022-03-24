@@ -225,7 +225,7 @@ class MultivariateGaussian:
         d = len(X[0])
         x_centered = X - self.mu_
         cov_inv = np.linalg.inv(self.cov_)
-        mechane = np.sqrt(np.power(2 * np.pi, d) * det(self.cov_))
+        mechane = 1/np.sqrt(np.power(2 * np.pi, d) * det(self.cov_))
 
         def single_mult(x):
             mul = x @ cov_inv * x.T
