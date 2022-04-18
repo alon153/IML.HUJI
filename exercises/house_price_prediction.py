@@ -1,5 +1,6 @@
 from sklearn.model_selection import ParameterGrid
 
+import IMLearn.metrics
 from IMLearn.utils import split_train_test
 from IMLearn.learners.regressors import LinearRegression
 
@@ -30,7 +31,6 @@ def load_data(filename: str):
     """
 
     df = pd.read_csv(filename).drop_duplicates()
-    df = df.fillna(0)
 
     df["floors"] = df["floors"].astype(float)
     df["bathrooms"] = df["bathrooms"].astype(int)
@@ -38,7 +38,7 @@ def load_data(filename: str):
 
     # split date column to three int columns with year, month, date
     splitted_ymd = df["date"].str.extract(r'([\d]{4})([\d]{2})([\d]{2})', expand=True)
-    df[["buy_year", "buy_month", "buy_day"]] = splitted_ymd[[0, 1, 2]].fillna(0).astype(int)
+    df[["buy_year", "buy_month", "buy_day"]] = splitted_ymd[[0, 1, 2]].fillna(1).astype(int)
 
     # start by removing samples with impossible features
     df = df[df["bedrooms"] > 0]
@@ -68,8 +68,11 @@ def load_data(filename: str):
     df = df[df["buy_day"] > 0]
     df = df[df["buy_day"] < 32]
 
+    df = pd.concat([df, pd.get_dummies(df["view"], prefix="View Type", prefix_sep=": ")], axis=1)
+    df["Renovated Last Decade"] = (df["yr_renovated"] > 2010).astype(int)
+
     labels = df["price"]
-    filtered_fits = ["price", "date", "id", "zipcode"]
+    filtered_fits = ["price", "date", "id", "zipcode", "yr_renovated", "view", "buy_day", "buy_month"]
     fits = [f for f in df.columns if f not in filtered_fits]
 
     features = df[fits]
@@ -111,13 +114,15 @@ def feature_evaluation(X: pd.DataFrame, y: pd.Series, output_path: str = "../pea
     for i in range(len(np_df[0])):
         correlations.append(pearson_correlation(np_df[:,i], np_y))
 
-    fig = go.Figure([go.Scatter(x=X.columns, y=correlations, mode='markers', name="Correlations")],
-                    layout=go.Layout(title="r$\\text{PDF of the uni-variate Gaussian distribution N(10,1)}$",
-                                     xaxis_title="$\\text{sample values}$",
-                                     yaxis_title="$\\text{PDF of sample}$",
-                                     height=500))
-    # fig.show()
-    # fig.write_image(output_path)
+    min_feat = str(X.columns[np.argmin(correlations)])
+    max_feat = str(X.columns[np.argmax(correlations)])
+
+    min_fig = scatter_feature(X[min_feat], np_y, min_feat, "Price")
+    max_fig = scatter_feature(X[max_feat], np_y, max_feat, "Price")
+    min_fig.show()
+    max_fig.show()
+    min_fig.write_image("../Correlations/min feature.png")
+    max_fig.write_image("../Correlations/max feature.png")
 
 
 def scatter_feature(feature: np.ndarray, label: np.ndarray, feature_name: str, label_name: str):
@@ -126,11 +131,12 @@ def scatter_feature(feature: np.ndarray, label: np.ndarray, feature_name: str, l
                                      xaxis_title="$\\text{"+feature_name+"}$",
                                      yaxis_title="$\\text{"+label_name+"}$",
                                      height=500))
-    # fig.show()
+    return fig
 
 
 if __name__ == '__main__':
     np.random.seed(0)
+
     # Question 1 - Load and preprocessing of housing prices dataset
     features, labels = load_data("..\datasets\house_prices.csv")
 
@@ -152,30 +158,32 @@ if __name__ == '__main__':
     percentages = np.linspace(10,100,91)
     avg_loss = []
     loss_var = []
+    loss_std = []
     for p in percentages:
         per_p = []
         for i in range(10):
-            t_X, t_y, m, n = split_train_test(train_X, train_y, p/float(100))
-            model = LinearRegression(False).fit(t_X.to_numpy(), t_y.to_numpy())
+            t_X, t_y, m, n = split_train_test(train_X, train_y, p / float(100))
+            model = LinearRegression(False)
+            model.fit(t_X.to_numpy(), t_y.to_numpy())
             per_p.append(model.loss(test_X.to_numpy(), test_y.to_numpy()))
+
         per_p = np.array(per_p)
         avg_loss.append(per_p.mean())
-        loss_var.append(per_p.var())
+        loss_var.append(np.sqrt(per_p.var()))
+        loss_std.append(per_p.std())
 
-    fig1 = go.Figure([go.Scatter(x=percentages, y=avg_loss, mode='markers', name="Correlations")],
-                    layout=go.Layout(
-                        title="r$\\text{avg loss by percentage}$",
-                        xaxis_title="$\\text{percentage}$",
-                        yaxis_title="$\\text{avg_loss}$",
-                        height=700))
-    fig1.show()
+    avg_loss = np.array(avg_loss)
+    loss_var = np.array(loss_var)
+    loss_std = np.array(loss_std)
 
-    fig2 = go.Figure([go.Scatter(x=percentages, y=loss_var, mode='markers', name="Correlations")],
+
+    fig = go.Figure([go.Scatter(x=percentages, y=avg_loss, mode='lines+markers', name="Average Loss"),
+                      go.Scatter(x=percentages, y=avg_loss-2*loss_var, name="Avg Loss - 2 std(los)", fill="tonexty", mode="lines", line=dict(color="lightgrey"), showlegend=False),
+                      go.Scatter(x=percentages, y=avg_loss+2*loss_var, name="Avg Loss + 2 std(los)",fill="tonexty", mode="lines", line=dict(color="lightgrey"), showlegend=False)],
                     layout=go.Layout(
-                        title="r$\\text{loss var by percentage}$",
-                        xaxis_title="$\\text{perentage}$",
-                        yaxis_title="$\\text{loss_var}$",
-                        height=700))
-    fig2.show()
+                        title="r$\\text{Mean loss var by percentage of training sample with confidence intervals}$",
+                        xaxis_title="$\\text{Percentage of training sample}$",
+                        yaxis_title="$\\text{Average Loss}$"))
+    fig.show()
 
 
