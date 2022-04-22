@@ -107,39 +107,42 @@ def compare_gaussian_classifiers():
         from IMLearn.metrics import accuracy
         fig = make_subplots(rows=1, cols=2)
 
-        # lda_pred = lda.predict(X)
-        # bayes_pred = bayes.predict(X)
+        lda_pred = lda.predict(X)
+        bayes_pred = bayes.predict(X)
 
-        lda_pred = pd.DataFrame(lda.predict(X))
-        bayes_pred = pd.DataFrame(bayes.predict(X))
-        X = pd.DataFrame(X)
-        X["true"] = pd.DataFrame(y).astype(str)
-        X["bayes"] = bayes_pred.astype(str)
-        X["lda"] = lda_pred.astype(str)
+        lda_acc = accuracy(y, lda_pred)
+        bayes_acc = accuracy(y, bayes_pred)
 
-        print(lda_pred)
-        print(bayes_pred)
+        fig = make_subplots(rows=1, cols=2, subplot_titles=[
+            "LDA model (accuracy: " + str(lda_acc)+")",
+            "Naive Gaussian model (accuracy: " + str(bayes_acc)+")"])
+        fig.update_layout(title_text=f)
 
-        print(accuracy(y,lda_pred.to_numpy()))
-        print(accuracy(y,bayes_pred.to_numpy()))
+        fig.add_trace(
+            go.Scatter(x=X[:, 0], y=X[:, 1], mode="markers",
+                       marker=dict(color=lda_pred, symbol=y),
+                       showlegend=False),
+            row=1, col=1
+        )
 
-        px.scatter(X, x=X.columns[0], y=X.columns[1], color="lda", symbol="true").show()
-        px.scatter(X, x=X.columns[0], y=X.columns[1], color="bayes", symbol="true").show()
+        fig.add_trace(
+            go.Scatter(x=X[:, 0], y=X[:, 1], mode="markers",
+                       marker=dict(color=bayes_pred, symbol=y),
+                       showlegend=False),
+            row=1, col=2
+        )
 
-        # fig.add_trace(px.scatter(X, x=X.columns[0], y=X.columns[1], color="lda", symbol="true"),row=1,col=1)
-        # fig.add_trace(px.scatter(X, x=X.columns[0], y=X.columns[1], color="bayes", symbol="true"), row=1, col=1)
-        # fig.show()
+        fig.add_trace(
+            go.Scatter(x=lda.mu_[:,0], y=lda.mu_[:,1], mode="markers", marker=dict(color="black", symbol="x"),showlegend=False),row=1, col=1)
+        fig.add_trace(
+            go.Scatter(x=bayes.mu_[:, 0], y=bayes.mu_[:, 1], mode="markers", marker=dict(color="black", symbol="x"),
+                       showlegend=False), row=1, col=2)
 
+        fig.add_traces([get_ellipse(mu, lda.cov_) for mu in lda.mu_], rows=1, cols=1)
+        fig.add_traces([get_ellipse(bayes.mu_[k], bayes.cov_[k]) for k in range(len(bayes.classes_))], rows=1, cols=2)
 
-        # Add traces for data-points setting symbols and colors
-        raise NotImplementedError()
-
-        # Add `X` dots specifying fitted Gaussians' means
-        raise NotImplementedError()
-
-        # Add ellipses depicting the covariances of the fitted Gaussians
-        raise NotImplementedError()
-
+        fig.update_layout(height=600, width=1400)
+        fig.show()
 
 if __name__ == '__main__':
     np.random.seed(0)

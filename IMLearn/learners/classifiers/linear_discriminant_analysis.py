@@ -65,7 +65,7 @@ class LDA(BaseEstimator):
             centered = np.atleast_2d(X[i] - self.mu_[class_indexes[i]])
             mult = centered.T @ centered
             self.cov_ += mult
-        self.cov_ /= m
+        self.cov_ /= (m-len(self.classes_))
 
         self._cov_inv = np.linalg.inv(self.cov_)
         self.fitted_ = True

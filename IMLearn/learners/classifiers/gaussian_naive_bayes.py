@@ -26,6 +26,7 @@ class GaussianNaiveBayes(BaseEstimator):
         """
         super().__init__()
         self.classes_, self.mu_, self.vars_, self.pi_ = None, None, None, None
+        self.cov_ = None
 
     def _fit(self, X: np.ndarray, y: np.ndarray) -> NoReturn:
         """
@@ -63,6 +64,8 @@ class GaussianNaiveBayes(BaseEstimator):
 
         self.vars_ = np.array(sigs)
 
+        self.cov_ = np.array([np.diag(self.vars_[k]) for k in range(len(self.classes_))])
+
         self.fitted_ = True
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
@@ -81,6 +84,7 @@ class GaussianNaiveBayes(BaseEstimator):
         """
 
         likelihoods = self.likelihood(X)
+        print("l")
         pred = []
         for l in likelihoods:
             pred.append(self.classes_[np.argmax(l)])
@@ -105,20 +109,21 @@ class GaussianNaiveBayes(BaseEstimator):
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
 
-        likelihoods = []
-        for i in range(X.shape[0]):
-            i_likelihood = []
-            for k in range(len(self.classes_)):
-                in_sqrt = 2 * np.pi * self.vars_[k][i]
-                z = 1 / np.sqrt(in_sqrt)
+        likelihood = np.zeros((X.shape[0], len(self.classes_)))
+        for k in range(likelihood.shape[1]):
+            vars_prod = np.prod(np.sqrt(self.vars_[k]))
+            factor = 1/(vars_prod * (2*np.pi) ** (X.shape[1]/2))
 
-                centerd = (X[i] - self.mu_[k])
-                in_exp = -0.5 * (np.linalg.norm(centerd) ** 2) / self.vars_[k][i]
+            for i in range(X.shape[0]):
+                centered = (X[i] - self.mu_[k]) / np.sqrt(self.vars_[k])
+                in_exp = -0.5 * np.dot(centered, centered)
 
-                i_likelihood.append(z * np.exp(in_exp) * self.pi_[k])
-            likelihoods.append(np.array(i_likelihood))
+                likelihood[i,k] = factor * np.exp(in_exp)
 
-        return np.array(likelihoods)
+        return likelihood
+
+
+
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
