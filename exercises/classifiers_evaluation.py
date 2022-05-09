@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from IMLearn.learners.classifiers import Perceptron, LDA, GaussianNaiveBayes
@@ -146,5 +147,12 @@ def compare_gaussian_classifiers():
 
 if __name__ == '__main__':
     np.random.seed(0)
-    # run_perceptron()
+    run_perceptron()
     compare_gaussian_classifiers()
+
+    # X = np.array([[1,1],[1,2],[2,3],[2,4],[3,3],[3,4]])
+    # y = np.array([0,0,1,1,1,1])
+    # gauss = GaussianNaiveBayes()
+    # gauss.fit(X,y)
+    # print(gauss.mu_)
+    # print(gauss.vars_)

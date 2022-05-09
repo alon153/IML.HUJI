@@ -59,7 +59,7 @@ class GaussianNaiveBayes(BaseEstimator):
             for j in range(len(self.classes_)):
                 if y[i] == self.classes_[j]:
                     square = (X[i] - self.mu_[j]) ** 2
-                    sigs[j] += square / counts[j]
+                    sigs[j] += square / (counts[j]-1)
                     break
 
         self.vars_ = np.array(sigs)
